@@ -17,7 +17,7 @@ class AuthController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json(['message' => 'The given data was invalid.', 'errors' => $validator->errors()], 422);
         }
 
         $user = User::where('email', $request->email)->first();
@@ -25,9 +25,11 @@ class AuthController extends Controller
         if (!$user) {
             return response()->json(['message' => 'Account is not found.'], 404);
         }
+
         if (auth()->check()) {
             return response()->json(['message' => 'Already authenticated.'], 403);
         }
+
         if (auth()->attempt($request->only('email', 'password'))) {
             $token = $user->createToken('Login Berhasil')->plainTextToken;
             return response()->json(['token' => $token]);
@@ -35,7 +37,6 @@ class AuthController extends Controller
 
         return response()->json(['message' => 'Invalid credentials.'], 401);
     }
-
 
     public function logout(Request $request)
     {
