@@ -5,31 +5,35 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'email' => 'required|email',
             'password' => 'required|min:6|regex:/^(?=.*[a-zA-Z])(?=.*\d).+$/',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
         $user = User::where('email', $request->email)->first();
 
-        if (! $user) {
+        if (!$user) {
             return response()->json(['message' => 'Account is not found.'], 404);
         }
-
-        if (auth()->attempt($request->only('email', 'password'))) {
+        if (auth()->check()) {
             return response()->json(['message' => 'Already authenticated.'], 403);
         }
-
-        if (!Hash::check($request->password, $user->password)) {
-            return response()->json(['message' => 'Invalid credentials.'], 401);
+        if (auth()->attempt($request->only('email', 'password'))) {
+            $token = $user->createToken('Login Berhasil')->plainTextToken;
+            return response()->json(['token' => $token]);
         }
 
-        return $user->createToken('Login Berhasil')->plainTextToken;
+        return response()->json(['message' => 'Invalid credentials.'], 401);
     }
 
 
